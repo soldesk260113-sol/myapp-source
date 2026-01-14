@@ -89,8 +89,8 @@ function checkService(name, url) {
 app.get('/', async (req, res) => {
   const services = [
     { name: 'Map API', url: 'http://map-api-myapp:80/' },
-    { name: 'Energy API', url: 'http://energy-api-myapp:80/' },
-    { name: 'Weather(KMA) API', url: 'http://kma-api-myapp:80/' }
+    { name: 'Energy API', url: 'http://energy-api-myapp:80/health' },
+    { name: 'Weather(KMA) API', url: 'http://kma-api-myapp:80/health' }
   ];
 
   const results = await Promise.all(services.map(s => checkService(s.name, s.url)));
