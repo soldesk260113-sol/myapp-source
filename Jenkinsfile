@@ -3,14 +3,15 @@ pipeline {
     
     environment {
         HARBOR_HOST = '10.2.2.40:5000'
-        IMAGE_NAME = 'my-web'
+        IMAGE_NAME = 'integrated-dashboard'
         GITEA_HOST = '10.2.2.40:3001'
     }
     
     stages {
+        // [1단계] Docker 이미지 빌드 및 Harbor 레지스트리 업로드
         stage('Build & Push Image') {
             steps {
-                echo "🚀 호스트(CI-OPS)에서 빌드 및 Harbor 업로드 시작"
+                echo "🚀 호스트(CICD-OPS)에서 빌드 및 Harbor 업로드 시작"
                 
                 sh """
                     ssh -i /var/jenkins_home/.ssh/id_rsa -o StrictHostKeyChecking=no root@10.2.2.40 '
@@ -18,16 +19,19 @@ pipeline {
                         
                         echo "1. 소스 코드 가져오기 (Git Clone)"
                         rm -rf /tmp/myapp_build
+                        # Gitea에서 소스 코드 리포지토리(myapp-source.git)를 클론합니다.
                         git clone http://jenkins:JenkinsPass123@${GITEA_HOST}/admin/myapp-source.git /tmp/myapp_build
                         cd /tmp/myapp_build
                         
                         echo "2. Docker 이미지 빌드"
+                        # Dockerfile을 기반으로 이미지를 빌드합니다. 태그는 빌드 번호(${BUILD_NUMBER})를 사용합니다.
                         docker build -t ${IMAGE_NAME}:${BUILD_NUMBER} .
                         
                         echo "3. Harbor 로그인"
                         docker login ${HARBOR_HOST} -u admin -p Admin123
                         
                         echo "4. 태그 및 Push"
+                        # Harbor 업로드를 위해 태그를 변경하고 Push 합니다. (Latest 태그도 함께 업데이트)
                         docker tag ${IMAGE_NAME}:${BUILD_NUMBER} ${HARBOR_HOST}/library/${IMAGE_NAME}:${BUILD_NUMBER}
                         docker tag ${IMAGE_NAME}:${BUILD_NUMBER} ${HARBOR_HOST}/library/${IMAGE_NAME}:latest
                         
@@ -47,6 +51,7 @@ pipeline {
             }
         }
         
+        // [2단계] Helm Chart 버전 업데이트 (GitOps 트리거)
         stage('Update Helm Chart') {
             steps {
                 echo "☸️ Helm Chart 버전 업데이트 (GitOps)"
@@ -60,14 +65,15 @@ pipeline {
                         mkdir -p /tmp/gitops_update
                         cd /tmp/gitops_update
                         
-                        # Gitea HTTP 인증 사용 (admin/Ansible.git)
+                        # Helm 설정 리포지토리(myapp-helm.git)를 클론합니다.
                         git clone http://jenkins:JenkinsPass123@${GITEA_HOST}/admin/myapp-helm.git .
                         
                         echo "2. values.yaml 수정 (이미지 태그 업데이트)"
                         git config user.email "jenkins@antigravity.local"
                         git config user.name "Jenkins CI"
                         
-                        # sed로 태그 변경 (큰따옴표 주의)
+                        # sed 명령어로 values.yaml 파일 내의 태그 값을 현재 빌드 번호로 교체합니다.
+                        # ArgoCD는 이 파일이 변경되면 자동으로 클러스터에 배포를 수행합니다.
                         sed -i "s/tag: .*/tag: \\"${BUILD_NUMBER}\\"/" my-web/helm/values.yaml
                         
                         echo "3. 변경 사항 확인"
@@ -76,7 +82,7 @@ pipeline {
                         echo "4. Commit & Push"
                         git add my-web/helm/values.yaml
                         
-                        # 변경사항이 있을 때만 커밋
+                        # 변경사항이 있을 때만 커밋 및 푸시를 수행합니다.
                         if ! git diff-index --quiet HEAD; then
                             git commit -m "Bump ${IMAGE_NAME} image tag to ${BUILD_NUMBER} [skip ci]"
                             git push http://jenkins:JenkinsPass123@${GITEA_HOST}/admin/myapp-helm.git main

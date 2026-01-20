@@ -5,7 +5,7 @@
 replicaCount: 1
 
 image:
-  repository: 10.2.2.40:5000/library/my-web
+  repository: 10.2.2.40:5000/library/integrated-dashboard
   pullPolicy: IfNotPresent
   # Overrides the image tag whose default is the chart appVersion.
   tag: "manual-v3"
