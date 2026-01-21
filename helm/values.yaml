@@ -49,10 +49,11 @@ ingress:
   annotations: {}
     # kubernetes.io/ingress.class: nginx
     # kubernetes.io/tls-acme: "true"
-  host: "my-web.antigravity.local"
-  paths:
-    - path: /
-      pathType: Prefix
+  hosts:
+    - host: "my-web.antigravity.local"
+      paths:
+        - path: /
+          pathType: Prefix
 
 resources:
   limits:
