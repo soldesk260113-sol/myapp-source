@@ -109,6 +109,19 @@ service:
 2. `my-web` 애플리케이션 선택
 3. **Sync** 버튼 클릭하여 최신 상태 반영
 
+### 접속 방법 (Ingress)
+
+Ingress가 생성되면 다음 호스트로 접속할 수 있습니다.
+(Host 파일 또는 DNS에 `10.2.2.101`이 등록되어 있어야 합니다.)
+
+- **URL**: `http://my-web.antigravity.local`
+- **VIP**: `10.2.2.101`
+
+```bash
+# 테스트
+curl -H "Host: my-web.antigravity.local" http://10.2.2.101
+```
+
 ## 📁 프로젝트 구조
 
 ```
